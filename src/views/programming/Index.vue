@@ -9,12 +9,12 @@
     </header>
 
     <div class="main-container">
-      <!-- 左侧菜单 - 显示路线所有课程 -->
+      <!-- 左侧菜单 - 显示8门课程 -->
       <aside class="sidebar" :class="{ show: showMenu }">
-        <div v-for="course in pathCourses" :key="course.id" class="course-menu">
+        <div v-for="course in courses" :key="course.id" class="course-menu">
           <div 
             class="course-title" 
-            :class="{ active: course.id === courseId, expanded: expandedCourses.has(course.id) }"
+            :class="{ active: currentCourse?.id === course.id, expanded: expandedCourses.has(course.id) }"
             @click="toggleCourse(course)"
           >
             <span>{{ course.icon }} {{ course.title }}</span>
@@ -26,8 +26,8 @@
               v-for="chapter in course.chapters" 
               :key="chapter.id"
               class="chapter-item"
-              :class="{ active: activeChapter?.id === chapter.id }"
-              @click="selectChapter(course.id, chapter)"
+              :class="{ active: activeChapter?.id === chapter.id && currentCourse?.id === course.id }"
+              @click="selectChapter(course, chapter)"
             >
               {{ chapter.title }}
             </div>
@@ -41,19 +41,19 @@
           <!-- 章节标题+视频 -->
           <div class="chapter-header">
             <h1>{{ activeChapter.title }}</h1>
-            <span v-if="activeChapter.video" class="chapter-video-btn" @click="playVideo(activeChapter.video)">▶ 观看章节</span>
+            <span v-if="getChapterVideo()" class="chapter-video-btn" @click="playVideo(getChapterVideo()!)">▶ 观看章节</span>
           </div>
 
           <!-- 知识点列表 -->
-          <div v-for="lesson in activeChapter.lessons" :key="lesson.id" class="lesson-section">
-            <div :id="'lesson-' + lesson.id" class="lesson-title">
-              <span>{{ lesson.title }}</span>
-              <span v-if="lesson.video" class="lesson-video-btn" @click="playVideo(lesson.video)">▶ 观看知识点</span>
+          <div v-for="point in getFilteredPoints(activeChapter)" :key="point.id" class="lesson-section">
+            <div :id="'lesson-' + point.id" class="lesson-title">
+              <span>{{ point.title }}</span>
+              <span v-if="getPointVideo(point)" class="lesson-video-btn" @click="playVideo(getPointVideo(point)!)">▶ 观看知识点</span>
             </div>
             
             <!-- Blocks内容流 -->
             <div class="blocks">
-              <template v-for="block in lesson.blocks" :key="block.id">
+              <template v-for="block in point.blocks" :key="block.id">
                 <h3 v-if="block.type === 'heading'" :id="'block-' + block.id" class="block-heading">{{ block.content }}</h3>
                 <p v-else-if="block.type === 'text'" :id="'block-' + block.id" class="block-text">{{ block.content }}</p>
                 <ul v-else-if="block.type === 'list'" :id="'block-' + block.id" class="block-list">
@@ -87,108 +87,36 @@
                 <div v-else-if="block.type === 'tip'" :id="'block-' + block.id" class="block-tip">💡 {{ block.content }}</div>
                 <div v-else-if="block.type === 'warning'" :id="'block-' + block.id" class="block-warning">⚠️ {{ block.content }}</div>
                 <blockquote v-else-if="block.type === 'quote'" :id="'block-' + block.id" class="block-quote">{{ block.content }}</blockquote>
-                <a v-else-if="block.type === 'download'" :id="'block-' + block.id" class="block-download" :href="block.url" download>
-                  💾 {{ block.text || '下载文件' }}
-                </a>
-                <div v-else-if="block.type === 'flowchart'" :id="'block-' + block.id" class="fc">
-                  <div class="fc-node start">{{ block.steps?.[0]?.text }}</div>
-                  <div class="fc-line">|</div>
-                  <div class="fc-node decision" id="fc-step2">{{ block.steps?.[1]?.text }}</div>
-                  <div class="fc-tree">
-                    <span class="fc-branch-line left">/</span>
-                    <span class="fc-branch-line right">\</span>
-                  </div>
-                  <div class="fc-labels">
-                    <span>没到&nbsp;</span>
-                    <span>&nbsp;&nbsp;到了&nbsp;&nbsp;</span>
-                  </div>
-                  <div class="fc-children">
-                    <div class="fc-child">
-                      <div class="fc-node">{{ block.steps?.[2]?.text }}</div>
-                      <div class="fc-line">|</div>
-                      <div class="fc-node fc-step4">{{ block.steps?.[3]?.text }}</div>
-                      <div class="fc-back-txt">进入下次循环,第5次结束</div>
-                    </div>
-                    <div class="fc-child">
-                      <div class="fc-node end">{{ block.steps?.[4]?.text }}</div>
-                    </div>
-                  </div>
-                </div>
-                <!-- if单分支流程图 -->
-                <div v-else-if="block.type === 'flowchart-if'" :id="'block-' + block.id" class="fc-if">
-                  <div class="fc-node decision">{{ block.steps?.[0]?.text }}</div>
-                  <div class="fc-if-tree">
-                    <span>/</span>
-                    <span>\</span>
-                  </div>
-                  <div class="fc-if-labels">
-                    <span>true</span>
-                    <span>false</span>
-                  </div>
-                  <div class="fc-if-children">
-                    <div class="fc-if-child">
-                      <div class="fc-node">{{ block.steps?.[1]?.text }}</div>
-                    </div>
-                    <div class="fc-if-child fc-if-empty"></div>
-                  </div>
-                </div>
-                <!-- if-else二选一流程图 -->
-                <div v-else-if="block.type === 'flowchart-if-else'" :id="'block-' + block.id" class="fc-if">
-                  <div class="fc-node decision">{{ block.steps?.[0]?.text }}</div>
-                  <div class="fc-if-tree">
-                    <span>/</span>
-                    <span>\</span>
-                  </div>
-                  <div class="fc-if-labels">
-                    <span>true</span>
-                    <span>false</span>
-                  </div>
-                  <div class="fc-if-children">
-                    <div class="fc-if-child">
-                      <div class="fc-node">{{ block.steps?.[1]?.text }}</div>
-                    </div>
-                    <div class="fc-if-child">
-                      <div class="fc-node">{{ block.steps?.[2]?.text }}</div>
-                    </div>
-                  </div>
-                </div>
-                <!-- if-else if-else多选一流程图 -->
-                <div v-else-if="block.type === 'flowchart-if-chain'" :id="'block-' + block.id" class="fc-if">
-                  <div class="fc-node decision">{{ block.steps?.[0]?.text }}</div>
-                  <div class="fc-if-tree">
-                    <span>/</span>
-                    <span>\</span>
-                  </div>
-                  <div class="fc-if-labels">
-                    <span>true</span>
-                    <span>false</span>
-                  </div>
-                  <div class="fc-if-children">
-                    <div class="fc-if-child">
-                      <div class="fc-node">{{ block.steps?.[1]?.text }}</div>
-                    </div>
-                    <div class="fc-if-child">
-                      <div class="fc-node decision">{{ block.steps?.[2]?.text }}</div>
-                      <div class="fc-if-tree">
-                        <span>/</span>
-                        <span>\</span>
-                      </div>
-                      <div class="fc-if-labels">
-                        <span>true</span>
-                        <span>false</span>
-                      </div>
-                      <div class="fc-if-children">
-                        <div class="fc-if-child">
-                          <div class="fc-node">{{ block.steps?.[3]?.text }}</div>
-                        </div>
-                        <div class="fc-if-child">
-                          <div class="fc-node">{{ block.steps?.[4]?.text }}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </template>
+
+              <!-- 多语言代码实现 -->
+              <div v-if="hasCodeImpl(point)" class="code-impl-section">
+                <div v-if="showLangTabs && getAvailableLangs(point).length > 1" class="code-tabs">
+                  <span 
+                    v-for="l in getAvailableLangs(point)" 
+                    :key="l"
+                    class="code-tab"
+                    :class="{ active: getActiveCodeLang(point.id) === l }"
+                    @click="setActiveCodeLang(point.id, l)"
+                  >
+                    {{ getLangDisplayName(l) }}
+                  </span>
+                </div>
+                
+                <div v-for="codeBlock in getCodeBlocks(point)" :key="codeBlock.id" class="block-code">
+                  <div class="code-head">
+                    <span class="filename">{{ codeBlock.filename }}</span>
+                    <div class="copy-box">
+                      <span v-if="copiedId === codeBlock.id" class="copy-text">已复制</span>
+                      <span class="copy-icon" @click="copy(getCodeContent(codeBlock), codeBlock.id)">
+                        <svg v-if="copiedId !== codeBlock.id" viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                        <svg v-else viewBox="0 0 24 24" width="14" height="14" class="check"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                      </span>
+                    </div>
+                  </div>
+                  <pre><code>{{ getCodeContent(codeBlock) }}</code></pre>
+                </div>
+              </div>
             </div>
           </div>
         </template>
@@ -198,12 +126,9 @@
 
       <!-- 右侧悬浮导航 -->
       <aside v-if="activeChapter" class="quick-nav">
-        <div v-for="lesson in activeChapter.lessons" :key="lesson.id" class="nav-group">
-          <div class="nav-item" @click="scrollToElement('lesson-' + lesson.id)">
-            <span class="dot">●</span>{{ lesson.title }}
-          </div>
-          <div v-for="block in lesson.blocks.filter(b => b.type === 'heading')" :key="block.id" class="nav-sub" @click="scrollToElement('block-' + block.id)">
-            {{ block.content }}
+        <div v-for="point in getFilteredPoints(activeChapter)" :key="point.id" class="nav-group">
+          <div class="nav-item" @click="scrollToElement('lesson-' + point.id)">
+            <span class="dot">●</span>{{ point.title }}
           </div>
         </div>
       </aside>
@@ -223,67 +148,165 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getCourse, getPathCourses } from '@/mock/courseData'
-import type { Chapter } from '@/types/course'
+import { languageCourseGroups } from '@/mock/knowledgeData'
+import type { ProgrammingCourse, ProgrammingChapter, KnowledgePoint, ProgrammingLanguage, CodeBlock } from '@/types/course'
 
 const route = useRoute()
 const router = useRouter()
 
-const courseId = computed(() => route.params.language as string)
-const currentCourse = computed(() => getCourse(courseId.value))
-const pathCourses = computed(() => currentCourse.value ? getPathCourses(currentCourse.value.pathId) : [])
+// 从URL query参数获取语言，不传则为空（显示全部语言tab）
+const lang = computed(() => route.query.lang as string || '')
+
+// 是否显示语言切换tab（不传参数时显示）
+const showLangTabs = computed(() => !lang.value)
+
+// 检查知识点是否有当前语言的实现
+function hasLangImpl(point: KnowledgePoint): boolean {
+  if (!lang.value) return true  // 不传参数时显示全部
+  // 没有codeImpl字段的知识点是通用的，默认显示
+  if (!point.codeImpl) return true
+  // 有codeImpl但当前语言不在里面，过滤掉
+  return !!point.codeImpl[lang.value as ProgrammingLanguage]
+}
+
+// 检查章节是否有当前语言的知识点
+function hasChapterLangImpl(chapter: ProgrammingChapter): boolean {
+  if (!lang.value) return true  // 不传参数时显示全部
+  return chapter.points.some(point => hasLangImpl(point))
+}
+
+// 过滤后的章节points
+function getFilteredPoints(chapter: ProgrammingChapter): KnowledgePoint[] {
+  if (!lang.value) return chapter.points  // 不传参数时显示全部
+  return chapter.points.filter(point => hasLangImpl(point))
+}
+
+// 获取课程列表（过滤没有当前语言实现的章节）
+const courses = computed(() => {
+  const allCourses = languageCourseGroups[0]?.courses || []
+  if (!lang.value) return allCourses
+  
+  // 过滤掉没有当前语言实现的章节
+  return allCourses.map(course => ({
+    ...course,
+    chapters: course.chapters.filter(chapter => hasChapterLangImpl(chapter))
+  })).filter(course => course.chapters.length > 0)
+})
 
 const expandedCourses = ref<Set<string>>(new Set())
-const activeChapter = ref<Chapter | null>(null)
+const currentCourse = ref<ProgrammingCourse | null>(null)
+const activeChapter = ref<ProgrammingChapter | null>(null)
 const showMenu = ref(false)
 const videoUrl = ref('')
 const videoPlayer = ref<HTMLVideoElement | null>(null)
 const copiedId = ref('')
+const activeCodeLangs = ref<Record<string, string>>({})
 
+// 初始化
 function init() {
-  if (currentCourse.value) {
-    // 确保当前课程在左侧展开（清除其他，只保留当前）
-    expandedCourses.value.clear()
-    expandedCourses.value.add(currentCourse.value.id)
-    
-    // 自动选择第一个章节
-    if (currentCourse.value.chapters.length) {
-      activeChapter.value = currentCourse.value.chapters[0]
+  if (courses.value.length > 0) {
+    const firstCourse = courses.value[0]
+    currentCourse.value = firstCourse
+    expandedCourses.value.add(firstCourse.id)
+    if (firstCourse.chapters.length > 0) {
+      activeChapter.value = firstCourse.chapters[0]
     }
   }
 }
 
-onMounted(init)
-watch(courseId, () => {
-  activeChapter.value = null
-  init()
-})
+watch(courses, init, { immediate: true })
 
-function toggleCourse(course: any) {
-  // 如果是交互式页面课程，直接跳转
-  if (course.interactivePage) {
-    router.push(course.interactivePage)
-    return
-  }
-  
+function toggleCourse(course: ProgrammingCourse) {
   if (expandedCourses.value.has(course.id)) {
     expandedCourses.value.delete(course.id)
   } else {
-    // 点击一个课程后，其他的自动收起
     expandedCourses.value.clear()
     expandedCourses.value.add(course.id)
   }
 }
 
-function selectChapter(cid: string, chapter: Chapter) {
-  if (cid !== courseId.value) {
-    router.push(`/learn/${cid}`)
-  }
+function selectChapter(course: ProgrammingCourse, chapter: ProgrammingChapter) {
+  currentCourse.value = course
   activeChapter.value = chapter
   showMenu.value = false
   window.scrollTo({ top: 0, behavior: 'instant' })
+}
+
+function hasCodeImpl(point: KnowledgePoint): boolean {
+  return !!point.codeImpl && Object.keys(point.codeImpl).length > 0
+}
+
+// 获取当前语言的章节视频
+function getChapterVideo(): string | undefined {
+  if (!activeChapter.value?.video) return undefined
+  const currentLang = (lang.value || 'java') as ProgrammingLanguage
+  return activeChapter.value.video[currentLang]
+}
+
+// 获取当前语言的知识点视频
+function getPointVideo(point: KnowledgePoint): string | undefined {
+  if (!point.video) return undefined
+  const currentLang = (lang.value || 'java') as ProgrammingLanguage
+  return point.video[currentLang]
+}
+
+// 可选语言列表
+function getAvailableLangs(point: KnowledgePoint): string[] {
+  if (!point.codeImpl) return []
+  
+  // 传了参数，只返回当前语言（不显示tab）
+  if (lang.value) {
+    return point.codeImpl[lang.value as ProgrammingLanguage] ? [lang.value] : []
+  }
+  
+  // 不传参数，返回所有语言（含ai）
+  const allLangs = ['java', 'javascript', 'python', 'go', 'c', 'csharp', 'ai']
+  return allLangs.filter(l => point.codeImpl?.[l as ProgrammingLanguage])
+}
+
+function getActiveCodeLang(pointId: string): string {
+  if (activeCodeLangs.value[pointId]) {
+    return activeCodeLangs.value[pointId]
+  }
+  // 传了参数用该语言，否则默认java
+  return lang.value || 'java'
+}
+
+function setActiveCodeLang(pointId: string, langKey: string) {
+  activeCodeLangs.value[pointId] = langKey
+}
+
+function getCodeBlocks(point: KnowledgePoint) {
+  const activeLang = getActiveCodeLang(point.id)
+  return point.codeImpl?.[activeLang as ProgrammingLanguage] || []
+}
+
+function getLangDisplayName(langKey: string): string {
+  const names: Record<string, string> = {
+    java: 'Java',
+    javascript: 'JavaScript',
+    python: 'Python',
+    go: 'Go',
+    c: 'C',
+    csharp: 'C#',
+    ai: 'AI编程'
+  }
+  return names[langKey] || langKey
+}
+
+// 获取代码内容（AI语言时加上自然语言描述）
+function getCodeContent(codeBlock: CodeBlock): string {
+  if (codeBlock.prompt) {
+    return `/*
+提示词 ${codeBlock.prompt}
+*/
+
+// AI生成:
+${codeBlock.code}`
+  }
+  return codeBlock.code
 }
 
 async function playVideo(url: string) {
@@ -295,8 +318,6 @@ async function playVideo(url: string) {
         await videoPlayer.value.requestFullscreen()
       } else if ((videoPlayer.value as any).webkitRequestFullscreen) {
         await (videoPlayer.value as any).webkitRequestFullscreen()
-      } else if ((videoPlayer.value as any).msRequestFullscreen) {
-        await (videoPlayer.value as any).msRequestFullscreen()
       }
     } catch (err) {
       console.log('无法进入全屏模式:', err)
@@ -536,97 +557,31 @@ function scrollToElement(id: string) {
   font-style: italic;
   background: #f9f9f9;
 }
-.block-download {
-  display: inline-block;
-  margin: 10px 0;
-  padding: 10px 20px;
+
+/* 多语言代码切换 */
+.code-impl-section {
+  margin-top: 10px;
+}
+.code-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.code-tab {
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #666;
+  background: #f5f5f5;
+  border: 1px solid #e5e5e5;
+}
+.code-tab:hover { background: #e8e8e8; }
+.code-tab.active {
   background: #4A90D9;
   color: #fff;
-  border-radius: 6px;
-  font-size: 14px;
-  text-decoration: none;
-  cursor: pointer;
+  border-color: #4A90D9;
 }
-.block-download:hover {
-  background: #3a7bc8;
-}
-
-/* 流程图 - 树状 */
-.fc {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 0;
-  font-family: monospace;
-  font-size: 12px;
-  line-height: 1.2;
-  position: relative;
-}
-.fc-node {
-  padding: 3px 8px;
-  border: 1px solid #4A90D9;
-  border-radius: 3px;
-  background: #e8f4fc;
-}
-.fc-node.start { border-radius: 10px; background: #d4edda; border-color: #28a745; }
-.fc-node.decision { background: #fff3cd; border-color: #ffc107; position: relative; }
-.fc-node.decision::before {
-  content: '';
-  position: absolute;
-  left: -5px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: 4px solid transparent;
-  border-left: 5px solid #4A90D9;
-}
-.fc-node.end { border-radius: 10px; background: #f8d7da; border-color: #dc3545; }
-.fc-node.fc-step4 { position: relative; }
-.fc-node.fc-step4::before {
-  content: '';
-  position: absolute;
-  left: -10px;
-  top: 50%;
-  width: 6px;
-  height: 1px;
-  background: #4A90D9;
-}
-.fc-node.fc-step4::after {
-  content: '';
-  position: absolute;
-  left: -10px;
-  bottom: 50%;
-  width: 48px;
-  height: 87px;
-  border-left: 1px solid #4A90D9;
-  border-top: 1px solid #4A90D9;
-  border-radius: 3px 0 0 0;
-}
-.fc-line { color: #666; }
-.fc-tree { display: flex; gap: 50px; color: #666; font-size: 14px; }
-.fc-labels { display: flex; gap: 20px; font-size: 10px; color: #666; }
-.fc-children { display: flex; gap: 16px; }
-.fc-child { display: flex; flex-direction: column; align-items: center; }
-.fc-back-txt { font-size: 11px; color: #4A90D9; margin-top: 4px; }
-
-/* if单分支/二选一流程图 */
-.fc-if {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 0;
-  font-family: monospace;
-  font-size: 12px;
-  line-height: 1.2;
-}
-.fc-if .fc-node { padding: 3px 8px; border: 1px solid #4A90D9; border-radius: 3px; background: #e8f4fc; }
-.fc-if .fc-node.decision { background: #fff3cd; border-color: #ffc107; }
-.fc-if .fc-node.end { border-radius: 10px; background: #f8d7da; border-color: #dc3545; }
-.fc-if-tree { display: flex; gap: 20px; color: #666; font-size: 14px; }
-.fc-if-labels { display: flex; gap: 10px; font-size: 10px; color: #666; }
-.fc-if-children { display: flex; gap: 10px; align-items: flex-start; }
-.fc-if-child { display: flex; flex-direction: column; align-items: center; }
-.fc-if-empty { min-width: 60px; height: 20px; }
-.fc-if-merge-tree { display: flex; gap: 40px; color: #666; font-size: 14px; }
 
 .empty { text-align: center; padding: 60px; color: #999; }
 
@@ -658,26 +613,6 @@ function scrollToElement(id: string) {
 }
 .dot { font-size: 8px; color: #4A90D9; }
 .nav-item:hover { color: #4A90D9; background: #f5f5f5; }
-.nav-sub {
-  padding: 2px 6px 2px 18px;
-  cursor: pointer;
-  color: #666;
-  font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  position: relative;
-}
-.nav-sub::before {
-  content: '';
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  width: 4px;
-  height: 1px;
-  background: #ccc;
-}
-.nav-sub:hover { color: #4A90D9; }
 
 /* 视频弹窗 */
 .video-modal {

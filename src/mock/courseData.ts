@@ -2,6 +2,19 @@ import type { Course, NavItem } from '@/types/course'
 
 // 顶部导航
 export const navItems: NavItem[] = [
+  { 
+    id: 'programming', 
+    name: '编程', 
+    path: '/programming',
+    children: [
+      { id: 'prog-java', name: 'Java', path: '/programming?lang=java' },
+      { id: 'prog-js', name: 'JavaScript', path: '/programming?lang=javascript' },
+      { id: 'prog-python', name: 'Python', path: '/programming?lang=python' },
+      { id: 'prog-go', name: 'Go', path: '/programming?lang=go' },
+      { id: 'prog-c', name: 'C', path: '/programming?lang=c' },
+      { id: 'prog-csharp', name: 'C#', path: '/programming?lang=csharp' },
+    ]
+  },
   { id: 'java', name: 'Java', path: '/learn/java-basic' },
   { id: 'interview', name: '面试', path: '/learn/java-interview' },
   { id: 'python', name: 'Python', path: '/learn/python-basic' },
@@ -8941,6 +8954,245 @@ export const courses: Course[] =[
             "blocks": [
               {"id": "b1", "type": "code", "language": "text", "filename": "trae自然语言", "code": "点击下单按钮，把订单数据POST提交到/api/order接口\n显示下单结果"},
               {"id": "b2", "type": "tip", "content": "trae会使用fetch POST方法提交JSON数据"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ch6",
+        "title": "OpenClaw安装",
+        "lessons": [
+          {
+            "id": "l1",
+            "title": "OpenClaw介绍",
+            "blocks": [
+              {"id": "b1", "type": "text", "content": "OpenClaw是开源AI Agent框架，让AI真正'操作电脑'"},
+              {"id": "b2", "type": "table", "headers": ["功能", "说明"], "rows": [["文件操作", "自动整理、备份、解析文件"], ["网页自动化", "自动填表、点击、抓取"], ["定时任务", "定时提醒、定时执行"], ["多平台消息", "Telegram/Discord/飞书聚合"]]},
+              {"id": "b3", "type": "tip", "content": "OpenClaw = AI + 电脑自动化，用自然语言控制电脑"}
+            ]
+          },
+          {
+            "id": "l2",
+            "title": "一键部署",
+            "blocks": [
+              {"id": "b1", "type": "text", "content": "更改deepseek私钥，管理员打开PowerShell，执行以下完整脚本："},
+              {"id": "b2", "type": "code", "language": "powershell", "filename": "一键部署脚本", "code": "winget install OpenJS.NodeJS\nnpm config set registry https://registry.npmmirror.com\nnpm install -g openclaw\nopenclaw onboard --install-daemon --non-interactive --accept-risk\nopenclaw config set --strict-json models.providers.deepseek \"{\n  baseUrl: 'https://api.deepseek.com/v1',\n  apiKey: '你的DeepSeek私钥',\n  api: 'openai-completions',\n  models: [\n    { id: 'deepseek-chat', name: 'DeepSeek Chat (V3)' },\n    { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner (R1)' },\n  ],\n}\"\nopenclaw config set agents.defaults.model.primary \"deepseek/deepseek-chat\"\nopenclaw gateway restart\nopenclaw dashboard\necho 'finished'"},
+              {"id": "b3", "type": "tip", "content": "必须用管理员权限运行PowerShell\nDeepSeek私钥从 <a href='https://platform.deepseek.com/usage' target='_blank'>platform.deepseek.com</a> 获取"}
+            ]
+          },
+          {
+            "id": "l3",
+            "title": "验证部署",
+            "blocks": [
+              {"id": "b1", "type": "text", "content": "验证步骤："},
+              {"id": "b2", "type": "list", "items": ["1. 浏览器打开 http://127.0.0.1:18789", "2. 在对话框发送一条消息", "3. DeepSeek正常回复即部署成功"]},
+              {"id": "b3", "type": "tip", "content": "如遇端口占用，先执行 openclaw gateway stop --force"}
+            ]
+          },
+          {
+            "id": "l4",
+            "title": "接入飞书",
+            "blocks": [
+              {"id": "b1", "type": "text", "content": "让OpenClaw连接飞书，实现群聊AI助手："},
+              {"id": "b2", "type": "code", "language": "powershell", "filename": "启用飞书插件", "code": "openclaw plugins enable feishu\nopenclaw channels add"},
+              {"id": "b3", "type": "text", "content": "channels add交互选择："},
+              {"id": "b4", "type": "list", "items": ["1. 选择 feishu", "2. 选择 Enter App Secret", "3. 输入 App ID 和 App Secret", "4. 连接模式选择国内域名", "5. 群聊策略选择 Open（响应所有群聊）"]}
+            ]
+          },
+          {
+            "id": "l5",
+            "title": "飞书应用配置",
+            "blocks": [
+              {"id": "b1", "type": "text", "content": "在飞书开放平台创建应用："},
+              {"id": "b2", "type": "list", "items": ["1. 访问 open.feishu.cn/app 创建应用", "2. 添加应用能力 → 机器人", "3. 左侧权限管理 → 批量导入权限"]},
+              {"id": "b3", "type": "code", "language": "json", "filename": "权限配置JSON", "code": "{\n  \"scopes\": {\n    \"tenant\": [\n      \"im:message\", \"im:message:send_as_bot\",\n      \"im:message:readonly\", \"im:message.p2p_msg:readonly\",\n      \"im:message.group_at_msg:readonly\",\n      \"im:chat.members:bot_access\",\n      \"im:chat.access_event.bot_p2p_chat:read\",\n      \"im:resource\", \"event:ip_list\"\n    ],\n    \"user\": [\"im:chat.access_event.bot_p2p_chat:read\"]\n  }\n}"}
+            ]
+          },
+          {
+            "id": "l6",
+            "title": "飞书事件订阅",
+            "blocks": [
+              {"id": "b1", "type": "text", "content": "配置事件订阅（长连接模式）："},
+              {"id": "b2", "type": "list", "items": ["1. 订阅方式选择：长连接接收事件（WebSocket）", "2. 保存后添加以下事件"]},
+              {"id": "b3", "type": "table", "headers": ["事件", "说明"], "rows": [["im.message.receive_v1", "接收消息"], ["im.message.message_read_v1", "消息已读回执"], ["im.chat.member.bot.added_v1", "机器人进群"], ["im.chat.member.bot.deleted_v1", "机器人被移出群"]]}
+            ]
+          },
+          {
+            "id": "l7",
+            "title": "发布应用",
+            "blocks": [
+              {"id": "b1", "type": "text", "content": "发布并使用机器人："},
+              {"id": "b2", "type": "list", "items": ["1. 左侧版本管理与发布 → 创建版本", "2. 提交审核 → 发布", "3. 在飞书群组中添加机器人", "4. @机器人 发送消息即可对话"]},
+              {"id": "b3", "type": "tip", "content": "发布后，群内@机器人即可使用AI对话"}
+            ]
+          },
+          {
+            "id": "l8",
+            "title": "Playwright飞书自动化配置",
+            "blocks": [
+              {"id": "b1", "type": "text", "content": "使用Node.js + Playwright实现飞书应用全自动配置："},
+              {"id": "b2", "type": "code", "language": "javascript", "filename": "feishu-auto-config.js", "code": "const { chromium } = require('playwright');\n\n(async () => {\n  const browser = await chromium.launch({ headless: false });\n  const page = await browser.newPage();\n  \n  // 1. 打开飞书开放平台\n  await page.goto('https://open.feishu.cn/app');\n  \n  // 2. 点击创建应用\n  await page.click('text=创建企业自建应用');\n  await page.fill('input[placeholder=\"请输入应用名称\"]', 'OpenClaw AI助手');\n  await page.fill('textarea', 'AI智能对话机器人');\n  await page.click('text=确定创建');\n  \n  // 3. 添加机器人能力\n  await page.click('text=添加应用能力');\n  await page.click('text=机器人');\n  await page.click('text=确认添加');\n  \n  // 4. 配置权限\n  await page.click('text=权限管理');\n  await page.click('text=批量开通');\n  const permissions = [\n    'im:message', 'im:message:send_as_bot',\n    'im:message:readonly', 'im:message.p2p_msg:readonly',\n    'im:message.group_at_msg:readonly',\n    'im:chat.members:bot_access',\n    'im:chat.access_event.bot_p2p_chat:read',\n    'im:resource', 'event:ip_list'\n  ];\n  // 批量勾选权限...\n  \n  // 5. 配置事件订阅\n  await page.click('text=事件订阅');\n  await page.click('text=长连接接收事件');\n  const events = [\n    'im.message.receive_v1',      // 接收消息\n    'im.message.message_read_v1', // 消息已读回执\n    'im.chat.member.bot.added_v1',   // 机器人进群\n    'im.chat.member.bot.deleted_v1'  // 机器人被移出群\n  ];\n  for (const event of events) {\n    await page.click(`text=${event}`);\n  }\n  await page.click('text=保存');\n  \n  // 6. 发布应用\n  await page.click('text=版本管理与发布');\n  await page.click('text=创建版本');\n  await page.fill('input[placeholder=\"版本号\"]', '1.0.0');\n  await page.click('text=保存');\n  await page.click('text=申请发布');\n  \n  console.log('飞书应用配置完成！');\n  await browser.close();\n})();"},
+              {"id": "b3", "type": "table", "headers": ["自动化步骤", "说明"], "rows": [["打开飞书开放平台", "访问 open.feishu.cn/app"], ["创建应用", "自动填写应用名称和描述"], ["添加机器人", "自动添加机器人能力"], ["权限配置", "批量开通im:message等权限"], ["事件订阅", "配置WebSocket长连接事件"], ["发布应用", "创建版本并提交发布"]]},
+              {"id": "b4", "type": "code", "language": "bash", "filename": "安装依赖", "code": "npm install playwright\nnpx playwright install chromium"},
+              {"id": "b5", "type": "tip", "content": "Playwright是微软开源的浏览器自动化工具，支持Chrome/Firefox/Safari"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ch7",
+        "title": "文件自动化",
+        "lessons": [
+          {
+            "id": "l1",
+            "title": "文件整理",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "把下载文件夹里的文件按类型整理：\n图片放到 pictures 文件夹\n文档放到 documents 文件夹\n视频放到 videos 文件夹"},
+              {"id": "b2", "type": "tip", "content": "OpenClaw会自动识别文件类型并移动"}
+            ]
+          },
+          {
+            "id": "l2",
+            "title": "批量重命名",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "把当前文件夹所有图片按日期重命名：\n格式：2024-03-01_001.jpg"},
+              {"id": "b2", "type": "tip", "content": "OpenClaw会读取文件创建时间并批量重命名"}
+            ]
+          },
+          {
+            "id": "l3",
+            "title": "文件备份",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "每天晚上10点自动备份工作文件夹到移动硬盘"},
+              {"id": "b2", "type": "tip", "content": "结合定时任务实现自动备份"}
+            ]
+          },
+          {
+            "id": "l4",
+            "title": "文档解析",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "解析这份PDF合同，提取：甲方、乙方、金额、签约日期"},
+              {"id": "b2", "type": "tip", "content": "OpenClaw可以读取PDF/Word/Excel并提取信息"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ch8",
+        "title": "网页自动化",
+        "lessons": [
+          {
+            "id": "l1",
+            "title": "网页搜索",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "搜索今天的科技新闻，整理成列表给我"},
+              {"id": "b2", "type": "tip", "content": "OpenClaw会打开浏览器搜索并整理结果"}
+            ]
+          },
+          {
+            "id": "l2",
+            "title": "表单填写",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "打开报名网站，自动填写我的个人信息并提交"},
+              {"id": "b2", "type": "tip", "content": "OpenClaw可以自动填写表单，信息从配置读取"}
+            ]
+          },
+          {
+            "id": "l3",
+            "title": "数据抓取",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "抓取淘宝iPhone15的价格，每天记录一次，生成价格走势图"},
+              {"id": "b2", "type": "tip", "content": "OpenClaw可以定时抓取网页数据并分析"}
+            ]
+          },
+          {
+            "id": "l4",
+            "title": "自动登录",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "自动登录GitHub，检查我的仓库有没有新的issue"},
+              {"id": "b2", "type": "tip", "content": "OpenClaw支持保存登录状态，自动执行登录后操作"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ch9",
+        "title": "定时任务自动化",
+        "lessons": [
+          {
+            "id": "l1",
+            "title": "定时提醒",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "每天早上9点提醒我看日程安排"},
+              {"id": "b2", "type": "tip", "content": "OpenClaw会在指定时间发送提醒消息"}
+            ]
+          },
+          {
+            "id": "l2",
+            "title": "定时执行",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "每周一早上8点，自动生成本周工作计划模板"},
+              {"id": "b2", "type": "tip", "content": "定时任务 + 文件操作 = 自动化工作流"}
+            ]
+          },
+          {
+            "id": "l3",
+            "title": "条件触发",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "监控股票价格，跌破100元时立即通知我"},
+              {"id": "b2", "type": "tip", "content": "OpenClaw支持条件触发，不只是定时执行"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ch10",
+        "title": "消息自动化",
+        "lessons": [
+          {
+            "id": "l1",
+            "title": "Telegram机器人",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "连接我的Telegram机器人，收到消息时自动回复"},
+              {"id": "b2", "type": "tip", "content": "配置Telegram Bot Token即可连接"}
+            ]
+          },
+          {
+            "id": "l2",
+            "title": "邮件自动回复",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "监控邮箱，收到包含'报价'的邮件时，自动回复报价单"},
+              {"id": "b2", "type": "tip", "content": "OpenClaw可以读取邮件内容并智能回复"}
+            ]
+          },
+          {
+            "id": "l3",
+            "title": "多平台聚合",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "把Telegram、Discord、邮件的消息汇总，每天发一份摘要给我"},
+              {"id": "b2", "type": "tip", "content": "OpenClaw支持多平台消息聚合处理"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ch11",
+        "title": "综合实战",
+        "lessons": [
+          {
+            "id": "l1",
+            "title": "个人助手",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "搭建我的个人助手：\n1. 每天早上推送天气和日程\n2. 监控重要邮件并提醒\n3. 自动整理下载文件夹"},
+              {"id": "b2", "type": "tip", "content": "组合多个自动化能力，打造专属AI助手"}
+            ]
+          },
+          {
+            "id": "l2",
+            "title": "自动化工作流",
+            "blocks": [
+              {"id": "b1", "type": "code", "language": "text", "filename": "openclaw指令", "code": "创建工作流：\n1. 收到客户邮件\n2. 提取关键信息\n3. 生成回复草稿\n4. 等我确认后发送"},
+              {"id": "b2", "type": "tip", "content": "工作流 = 多个自动化步骤串联"}
             ]
           }
         ]
